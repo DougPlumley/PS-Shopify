@@ -2,7 +2,7 @@ function Get-ShopifyProduct
 {
     <#
     .Synopsis
-       Short description
+       Get-ShopifyProduct -StoreName "My-Shopify-Store" -Credential (Get-Credential ca7af3a5-ea25-4563-ae41-a1ea6a6ecf6a)
     .DESCRIPTION
        Long description
     .EXAMPLE
