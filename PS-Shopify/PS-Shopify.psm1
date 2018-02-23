@@ -69,3 +69,124 @@ function Get-ShopifyProduct
     {
     }
 }
+
+function New-ShopifyProduct
+{
+    <#
+    .Synopsis
+       Short description
+    .DESCRIPTION
+       Long description
+    .EXAMPLE
+       Example of how to use this cmdlet
+    .EXAMPLE
+       Another example of how to use this cmdlet
+    #>
+    [CmdletBinding()]
+    [Alias()]
+    [OutputType([int])]
+    Param
+    (
+        # Param1 help description
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, Position=0)]
+        [String]
+        $Title,
+
+        # Local storename only, example: "My-Shopify-Store"
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, Position=1)]
+        [String]
+        $StoreName,
+
+        # API key and password
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, Position=2)]
+        [PSCredential]
+        $Credential,
+
+        [PSCustomObject[]]
+        $Images,
+
+        [String]
+        $Vendor,
+
+        # Weight in US pounds (lbs)
+        [float]
+        $Weight,
+
+        [String]
+        $ProductType,
+
+        # Body as HTML
+        [String]
+        $Body
+    )
+
+    Begin
+    {
+        $headers = @{"Authorization" = "Basic "+[System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Credential.UserName+":" + $Credential.GetNetworkCredential().Password))}
+
+        $StoreURL = "https://$($StoreName).myshopify.com/admin/products.json"
+    }
+    Process
+    {
+        Write-Verbose "Verifying product does not already exist."
+        $products = Get-ShopifyProduct -ResultSize Unlimited -Credential $Credential -StoreName $StoreName
+        if ($products.title -notcontains $Title) {
+            Write-Verbose "SKU $($SKU) doesn't exist, adding SKU."
+        }
+        else {
+            throw "$($Title) already exists in Shopify"
+        }
+
+        # Base product template
+        $product = [PSCustomObject] @{
+            product = [PSCustomObject] @{
+                title = $Title
+            }
+        }
+
+        # Add to base product by parameter
+
+        ##########################################################################
+        # IMAGES
+        ##########################################################################
+
+        if ($Images) {
+            Write-Verbose "Adding images to payload..."
+            $encodedImages = @()
+
+            foreach ($image in $images) {
+                $encodedImages += [PSCustomObject] @{attachment = [convert]::ToBase64String($image.Image)}
+            }
+
+            $product.product | Add-Member -Name "images" -Value $encodedImages -MemberType NoteProperty -Force
+        }
+
+        if ($Vendor) {
+            Write-Verbose "Adding vendor of $($Vendor)"
+            $product.product | Add-Member -Name "vendor" -Value $Vendor -MemberType NoteProperty -Force
+        }
+
+        if ($Weight) {
+            Write-Verbose "Adding weight of $($Weight)"
+            $product.product.variants | Add-Member -Name "weight" -Value $Weight -MemberType NoteProperty -Force
+            $product.product.variants | Add-Member -Name "weight_unit" -Value "lb" -MemberType NoteProperty -Force
+        }
+
+        if ($ProductType) {
+            Write-Verbose "Adding product type of $($ProductType)"
+            $product.product | Add-Member -Name "product_type" -Value $ProductType -MemberType NoteProperty -Force
+        }
+
+        if ($Body) {
+            Write-Verbose "Adding HTML body."
+            $product.product | Add-Member -Name "body_html" -Value $Body -MemberType NoteProperty -Force
+        }
+
+        $body = $product | ConvertTo-Json -Depth 10
+
+        Invoke-WebRequest -Uri $StoreURL -ContentType "application/json" -Method Post -Headers $headers -Body $body
+    }
+    End
+    {
+    }
+}
