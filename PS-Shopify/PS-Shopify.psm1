@@ -13,13 +13,18 @@ function Get-ShopifyProduct
     [OutputType([PSCustomObject])]
     Param
     (
+        # Product SKU
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true, Position=0)]
+        [String]
+        $Identity,
+
         # API key and password
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, Position=0)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, Position=1)]
         [PSCredential]
         $Credential,
 
         # Local storename only, example: "My-Shopify-Store"
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, Position=1)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, Position=2)]
         [String]
         $StoreName,
 
@@ -30,12 +35,12 @@ function Get-ShopifyProduct
 
     Begin
     {
-    }
-    Process
-    {
         $StoreURL = "https://$($StoreName).myshopify.com/admin"
 
         $headers = @{"Authorization" = "Basic "+[System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Credential.UserName+":" + $Credential.GetNetworkCredential().Password))}
+    }
+    Process
+    {
 
         $products = @()
         $page = 1
@@ -55,6 +60,8 @@ function Get-ShopifyProduct
             $page++
         }
         while (($Unlimited -and $results.Count -eq 250) -or (!$Unlimited -and $products.count -lt $ResultSize))
+
+        if ($Identity) {$products = $products | Where-Object {$_.variants.sku -like "*$($Identity)*"}}
 
         return $products
     }
