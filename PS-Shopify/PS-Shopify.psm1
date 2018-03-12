@@ -102,7 +102,7 @@ function New-ShopifyProduct
         [PSCredential]
         $Credential,
 
-        [PSCustomObject[]]
+        [System.Drawing.Image[]]
         $Images,
 
         [String]
@@ -113,11 +113,29 @@ function New-ShopifyProduct
         $Weight,
 
         [String]
+        [Alias("product_type")]
         $ProductType,
 
         # Body as HTML
         [String]
-        $Body
+        [Alias("body_html")]
+        $Body,
+
+        [bool]
+        $Published,
+
+        [int]
+        [Alias("inventory_quantity")]
+        $InventoryQuantity,
+
+        [string]
+        [ValidateSet("Deny", "Continue")]
+        [Alias(inventory_policy)]
+        $InventoryPolicy,
+
+        [string]
+        [Alias(inventory_management)]
+        $InventoryManagement
     )
 
     Begin
@@ -155,7 +173,9 @@ function New-ShopifyProduct
             $encodedImages = @()
 
             foreach ($image in $images) {
-                $encodedImages += [PSCustomObject] @{attachment = [convert]::ToBase64String($image.Image)}
+                $memoryStream = New-Object System.IO.MemoryStream
+                $image.Save($memoryStream, [System.Drawing.Imaging.ImageFormat]::Png)
+                $encodedImages += [PSCustomObject] @{attachment = [convert]::ToBase64String($memoryStream.ToArray())}
             }
 
             $product.product | Add-Member -Name "images" -Value $encodedImages -MemberType NoteProperty -Force
