@@ -130,12 +130,15 @@ function New-ShopifyProduct
 
         [string]
         [ValidateSet("Deny", "Continue")]
-        [Alias(inventory_policy)]
+        [Alias("inventory_policy")]
         $InventoryPolicy,
 
         [string]
-        [Alias(inventory_management)]
-        $InventoryManagement
+        [Alias("inventory_management")]
+        $InventoryManagement,
+
+        [string]
+        $SKU
     )
 
     Begin
@@ -148,17 +151,20 @@ function New-ShopifyProduct
     {
         Write-Verbose "Verifying product does not already exist."
         $products = Get-ShopifyProduct -ResultSize Unlimited -Credential $Credential -StoreName $StoreName
-        if ($products.title -notcontains $Title) {
+        if ($products.variants.sku -notcontains $SKU) {
             Write-Verbose "SKU $($SKU) doesn't exist, adding SKU."
         }
         else {
-            throw "$($Title) already exists in Shopify"
+            throw "$($SKU) already exists in Shopify"
         }
 
         # Base product template
         $product = [PSCustomObject] @{
             product = [PSCustomObject] @{
                 title = $Title
+                variants = @(
+                    [PSCustomObject] @{}
+                )
             }
         }
 
@@ -200,6 +206,33 @@ function New-ShopifyProduct
         if ($Body) {
             Write-Verbose "Adding HTML body."
             $product.product | Add-Member -Name "body_html" -Value $Body -MemberType NoteProperty -Force
+        }
+
+        if ($SKU) {
+            Write-Verbose "Adding SKU to the variant."
+            $product.product.variants | Add-Member -Name "sku" -Value $SKU -MemberType NoteProperty -Force
+        }
+
+        # Set publishing status, if not provided assume this product should not be published
+        Write-Verbose "Setting published status to $([bool]$Published)"
+        $product.product | Add-Member -Name "published" -Value ([bool]$Published) -MemberType NoteProperty -Force
+
+        if ($InventoryQuantity -or $InventoryQuantity -eq 0) {
+            Write-Verbose "Setting inventory quantity to $($InventoryQuantity)"
+            $product.product.variants | Add-Member -Name "inventory_quantity" -Value $InventoryQuantity -MemberType NoteProperty -Force
+        }
+        else {
+            $product.product.variants | Add-Member -Name "inventory_quantity" -Value 0 -MemberType NoteProperty -Force
+        }
+
+        if ($InventoryManagement) {
+            Write-Verbose "Setting inventory management to $($InventoryManagement)."
+            $product.product.variants | Add-Member -Name "inventory_management" -Value $InventoryManagement -MemberType NoteProperty -Force
+        }
+
+        if ($InventoryPolicy) {
+            Write-Verbose "Setting inventory policy to $($InventoryPolicy)."
+            $product.product.variants | Add-Member -Name "inventory_policy" -Value $InventoryPolicy -MemberType NoteProperty -Force
         }
 
         $body = $product | ConvertTo-Json -Depth 10
