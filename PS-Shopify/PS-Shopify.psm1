@@ -1,3 +1,6 @@
+# Set PowerShell to require TLS v1.2, otherwise Shopify may deny the request
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 function Get-ShopifyProduct
 {
     <#
