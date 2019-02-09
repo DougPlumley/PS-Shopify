@@ -1,5 +1,3 @@
-# Set PowerShell to require TLS v1.2, otherwise Shopify may deny the request
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 function Get-ShopifyProduct
 {
@@ -38,6 +36,9 @@ function Get-ShopifyProduct
 
     Begin
     {
+        # Set PowerShell to require TLS v1.2, otherwise Shopify may deny the request
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
         $StoreURL = "https://$($StoreName).myshopify.com/admin"
 
         $headers = @{"Authorization" = "Basic "+[System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Credential.UserName+":" + $Credential.GetNetworkCredential().Password))}
@@ -146,6 +147,9 @@ function New-ShopifyProduct
 
     Begin
     {
+        # Set PowerShell to require TLS v1.2, otherwise Shopify may deny the request
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
         $headers = @{"Authorization" = "Basic "+[System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Credential.UserName+":" + $Credential.GetNetworkCredential().Password))}
 
         $StoreURL = "https://$($StoreName).myshopify.com/admin/products.json"
