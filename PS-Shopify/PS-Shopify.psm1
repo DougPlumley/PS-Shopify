@@ -142,7 +142,10 @@ function New-ShopifyProduct
         $InventoryManagement,
 
         [string]
-        $SKU
+        $SKU,
+
+        [decimal]
+        $Price
     )
 
     Begin
@@ -240,6 +243,11 @@ function New-ShopifyProduct
         if ($InventoryPolicy) {
             Write-Verbose "Setting inventory policy to $($InventoryPolicy)."
             $product.product.variants | Add-Member -Name "inventory_policy" -Value $InventoryPolicy -MemberType NoteProperty -Force
+        }
+
+        if ($Price) {
+            Write-Verbose "Setting price to $($Price)."
+            $product.product.variants | Add-Member -Name "price" -Value $Price -MemberType NoteProperty -Force
         }
 
         $body = $product | ConvertTo-Json -Depth 10
